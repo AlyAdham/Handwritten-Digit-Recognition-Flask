@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Model Performance Metrics</title>
+    <script type="text/javascript" src="{{url_for('static', filename='jquery.min.js') }}"></script>
+    <link rel="stylesheet" type="text/css" href="{{url_for('static', filename='style.css') }}">
+    <style>
+        .metrics-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 30px; /* Space between sections */
+            justify-content: center;
+            margin-top: 20px;
+        }
+        .metric-section {
+            text-align: center;
+            border: 1px solid #ccc;
+            padding: 20px;
+            background-color: #fff;
+            box-shadow: 2px 2px 8px rgba(0, 0, 0, 0.1); /* Add a subtle shadow */
+            flex: 1 1 300px; /* Allow sections to grow and shrink, with a base width */
+            max-width: 500px; /* Limit max width for larger screens */
+        }
+        .metric-section img {
+            max-width: 100%; /* Ensure images fit within their container */
+            height: auto;
+        }
+        h1, h2 {
+            text-align: center;
+            margin-top: 20px;
+        }
+         pre {
+            background-color: #f4f4f4;
+            padding: 15px;
+            border: 1px solid #ddd;
+            white-space: pre-wrap;       /* Since CSS 2.1 */
+            white-space: -moz-pre-wrap;  /* Mozilla, since 1999 */
+            white-space: -pre-wrap;      /* Opera 4-6 */
+            white-space: -o-pre-wrap;    /* Opera 7 */
+            word-wrap: break-word;       /* Internet Explorer 5.5+ */
+            text-align: left; /* Align text left within pre tags */
+            overflow-x: auto; /* Add horizontal scroll for long lines */
+        }
+         h3 {
+            margin-top: 10px;
+            margin-bottom: 15px;
+        }
+         .support-values {
+             margin-top: 20px;
+             text-align: left;
+             font-size: 0.9em;
+         }
+         .support-values span {
+             font-weight: bold;
+         }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Model Performance Metrics</h1>
+
+        <p><a href="{{ url_for('start') }}">Back to Drawing App</a></p>
+         <p><a href="{{ url_for('cnn_mlp_viz') }}">View CNN/MLP Visualizations</a></p>
+
+
+        <h2>Evaluation Results from Training</h2>
+
+        {% if error_message %}
+            <p style="text-align: center; color: red;">{{ error_message }}</p>
+        {% else %}
+            <div class="metrics-container">
+                <div class="metric-section">
+                    <h3>Confusion Matrix</h3>
+                    {% if confusion_matrix_image %}
+                        <img src="data:image/png;base64,{{ confusion_matrix_image }}" alt="Confusion Matrix Heatmap">
+                    {% else %}
+                        <p>Confusion Matrix visualization not available.</p>
+                    {% endif %}
+                </div>
+
+                 <div class="metric-section">
+                     <h3>Classification Report - Visual Summary</h3>
+                     {% if precision_image %}
+                         <img src="data:image/png;base64,{{ precision_image }}" alt="Precision per Class Chart">
+                     {% else %}
+                         <p>Precision chart not available.</p>
+                     {% endif %}
+
+                     {% if recall_image %}
+                         <img src="data:image/png;base64,{{ recall_image }}" alt="Recall per Class Chart">
+                     {% else %}
+                         <p>Recall chart not available.</p>
+                     {% endif %}
+
+                     {% if f1_image %}
+                         <img src="data:image/png;base64,{{ f1_image }}" alt="F1-Score per Class Chart">
+                     {% else %}
+                         <p>F1-Score chart not available.</p>
+                     {% endif %}
+
+                     {% if support_values %}
+                         <div class="support-values">
+                             <h4>Support (Number of True Instances per Class):</h4>
+                             <p>
+                                 {% for i in range(support_values|length) %}
+                                     <span>{{ i }}:</span> {{ support_values[i] }}{% if not loop.last %}, {% endif %}
+                                 {% endfor %}
+                             </p>
+                         </div>
+                     {% endif %}
+
+                 </div>
+            </div>
+        {% endif %}
+
+
+    </div>
+</body>
+</html>

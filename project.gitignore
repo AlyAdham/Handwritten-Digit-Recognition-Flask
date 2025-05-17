@@ -1,0 +1,17 @@
+# Ignore the virtual environment folder
+venv/
+
+# Ignore Python cache files
+__pycache__/
+*.pyc
+
+# Ignore the checkpoint folder (contains trained model and metrics)
+checkpoint/
+
+# Ignore any OS-specific files
+.DS_Store
+Thumbs.db
+
+# Ignore any temporary or log files you might generate
+*.log
+*.tmp

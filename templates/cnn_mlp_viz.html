@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>CNN Processing Stages Visualization</title>
+    <script type="text/javascript" src="{{url_for('static', filename='jquery.min.js') }}"></script>
+    <link rel="stylesheet" type="text/css" href="{{url_for('static', filename='style.css') }}">
+    <style>
+        .viz-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 30px; /* Space between visualizations */
+            justify-content: center;
+            margin-top: 20px;
+        }
+        .viz-item {
+            text-align: center;
+            border: 1px solid #ccc;
+            padding: 20px; /* Increased padding */
+            background-color: #fff;
+            box-shadow: 2px 2px 8px rgba(0, 0, 0, 0.1); /* Add a subtle shadow */
+            flex: 1 1 300px; /* Allow sections to grow and shrink, with a base width */
+            max-width: 500px; /* Limit max width for larger screens */
+        }
+        .viz-item img {
+            max-width: 100%; /* Ensure images fit within their container */
+            height: auto;
+            margin-bottom: 15px; /* Space below images */
+        }
+        h1, h2 {
+            text-align: center;
+            margin-top: 20px;
+        }
+         h3 {
+            margin-top: 10px;
+            margin-bottom: 15px;
+        }
+        .explanation {
+            text-align: left; /* Align explanation text to the left */
+            margin-top: 10px;
+            font-size: 0.95em;
+            color: #555; /* Slightly muted text color */
+        }
+         pre {
+            background-color: #f4f4f4;
+            padding: 15px;
+            border: 1px solid #ddd;
+            white-space: pre-wrap;       /* Since CSS 2.1 */
+            white-space: -moz-pre-wrap;  /* Mozilla, since 1999 */
+            white-space: -pre-wrap;      /* Opera 4-6 */
+            white-space: -o-pre-wrap;    /* Opera 7 */
+            word-wrap: break-word;       /* Internet Explorer 5.5+ */
+            text-align: left; /* Align text left within pre tags */
+            overflow-x: auto; /* Add horizontal scroll for long lines */
+        }
+         .support-values {
+             margin-top: 20px;
+             text-align: left;
+             font-size: 0.9em;
+         }
+         .support-values span {
+             font-weight: bold;
+         }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>CNN Processing Stages Visualization</h1>
+
+        <p><a href="{{ url_for('start') }}">Back to Drawing App</a></p>
+         <p><a href="{{ url_for('view_metrics') }}">View Performance Metrics</a></p>
+
+
+        <h2>How the CNN Processes the Image (Last Drawn Digit)</h2>
+
+        {% if message %}
+            <p style="text-align: center; color: red;">{{ message }}</p>
+        {% else %}
+            <div class="viz-container">
+                <div class="viz-item">
+                    <h3>Stage 1: Early Features (Fused)</h3>
+                    {% if viz_stage1 %}
+                        <img src="data:image/png;base64,{{ viz_stage1 }}" alt="Stage 1 Visualization">
+                    {% else %}
+                        <p>Visualization not available for this stage.</p>
+                    {% endif %}
+                    <p class="explanation">
+                        This image shows the initial patterns the CNN detects in the input digit, fused together.
+                        These are like basic building blocks such as edges, corners, and simple textures,
+                        extracted by the first convolutional and pooling layers. It's the network's first "look" at the raw pixels.
+                    </p>
+                </div>
+
+                <div class="viz-item">
+                    <h3>Stage 2: Complex Features (Fused)</h3>
+                    {% if viz_stage2 %}
+                        <img src="data:image/png;base64,{{ viz_stage2 }}" alt="Stage 2 Visualization">
+                    {% else %}
+                        <p>Visualization not available for this stage.</p>
+                    {% endif %}
+                    <p class="explanation">
+                        Here, the CNN has combined the early features to recognize more complex shapes and patterns.
+                        This stage, after the second convolutional and pooling layers, represents a higher level of abstraction,
+                        identifying parts of digits or combinations of strokes that are more meaningful for classification.
+                    </p>
+                </div>
+
+                <div class="viz-item">
+                    <h3>Stage 3: Predicted Number</h3>
+                    {% if viz_predicted_number %}
+                        <img src="data:image/png;base64,{{ viz_predicted_number }}" alt="Predicted Number Visualization">
+                    {% else %}
+                         <p>Predicted number visualization not available.</p>
+                    {% endif %}
+
+                    {% if viz_probability_chart %}
+                         <img src="data:image/png;base64,{{ viz_probability_chart }}" alt="Probability Chart">
+                     <p class="explanation">
+                        This is the final output. The image shows the original input digit with the predicted label.
+                        The bar chart visualizes the model's confidence (probability) for each possible digit class (0-9).
+                        The highest bar indicates the digit the model believes is most likely correct.
+                    </p>
+                    {% else %}
+                         <p>Probability chart not available.</p>
+                    {% endif %}
+                </div>
+            </div>
+        {% endif %}
+
+
+    </div>
+</body>
+</html>

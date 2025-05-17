@@ -1,6 +1,15 @@
 <html>
-<script type="text/javascript" src="{{url_for('static', filename='jquery.min.js') }}"></script>
-<link rel="stylesheet" type="text/css" href="{{url_for('static', filename='style.css') }}">
+<head>
+    <script type="text/javascript" src="{{url_for('static', filename='jquery.min.js') }}"></script>
+    <link rel="stylesheet" type="text/css" href="{{url_for('static', filename='style.css') }}">
+    <style>
+        /* Add any specific styles for the saliency map image if needed */
+        #saliency-map {
+            margin-top: 20px; /* Add some space above the image */
+            border: 1px solid #000; /* Optional: Add a border */
+        }
+    </style>
+</head>
 <script type="text/javascript">
     var canvas, ctx, flag = false,
         prevX = 0,
@@ -9,17 +18,22 @@
         currY = 0,
         dot_flag = false;
 
-    var x = "red",
-        y = 8;
+    var x = "red", // Drawing color
+        y = 8; // Drawing line width
 
     function init() {
         canvas = document.getElementById('can');
+        // Hide prediction results and visualizations initially
+        document.getElementById("prediction").style.display = "none";
         document.getElementById("probs").style.display = "none";
         document.getElementById("interpret").style.display = "none";
+        document.getElementById("saliency-map").style.display = "none"; // Hide saliency map
+
         ctx = canvas.getContext("2d");
         w = canvas.width;
         h = canvas.height;
 
+        // Add event listeners for drawing on the canvas
         canvas.addEventListener("mousemove", function (e) {
             findxy('move', e)
         }, false);
@@ -39,42 +53,65 @@
         ctx.beginPath();
         ctx.moveTo(prevX, prevY);
         ctx.lineTo(currX, currY);
-        ctx.strokeStyle = x;
-        ctx.lineWidth = y;
-        ctx.stroke();
+        ctx.strokeStyle = x; // Set stroke color
+        ctx.lineWidth = y; // Set line width
+        ctx.stroke(); // Draw the line
         ctx.closePath();
     }
 
     function erase() {
-        ctx.clearRect(0, 0, w, h);
-        document.getElementById("canvasimg").style.display = "none";
+        ctx.clearRect(0, 0, w, h); // Clear the entire canvas
+        // Hide prediction results and visualizations
+        document.getElementById("canvasimg").style.display = "none"; // Assuming this was for a saved image display
         document.getElementById("prediction").style.display = "none";
         document.getElementById("probs").style.display = "none";
         document.getElementById("interpret").style.display = "none";
-        b = document.getElementsByTagName("body")[0];
-        b.querySelectorAll('a').forEach(n => n.remove());
+        document.getElementById("saliency-map").style.display = "none"; // Hide saliency map
+
+        // Reset the content of the prediction elements
+        $('#prediction').empty();
+        $('#probs').removeAttr('src');
+        $('#interpret').removeAttr('src');
+        $('#saliency-map').removeAttr('src');
+
+        // Commented out potentially problematic code that removes all links
+        // b = document.getElementsByTagName("body")[0];
+        // b.querySelectorAll('a').forEach(n => n.remove());
     }
 
     function save() {
+        // Show the elements where prediction results will be displayed
         document.getElementById("prediction").style.display = "block";
         document.getElementById("probs").style.display = "block";
         document.getElementById("interpret").style.display = "block";
-        var final_image = canvas.toDataURL();
-        var a = document.createElement('a');
-        a.href = final_image;
-        a.download = 'process.png';
-        document.body.appendChild(a);
-        // a.click();
+        document.getElementById("saliency-map").style.display = "block"; // Show saliency map element
+
+        var final_image = canvas.toDataURL(); // Get the drawing as a data URL
+
+        // Send the image data to the Flask backend using AJAX
         $.ajax({
-            url: "{{ url_for('process') }}",
-            type: 'POST',
-            data: final_image,
+            url: "{{ url_for('process') }}", // URL for the prediction endpoint
+            type: 'POST', // Use POST method
+            data: final_image, // Send the image data
             success: function (response) {
-                endresult = JSON.parse(JSON.stringify(response))
-                console.log(endresult)
+                // Handle successful response from the backend
+                endresult = JSON.parse(JSON.stringify(response)) // Parse the JSON response
+                console.log(endresult) // Log the response to the console
+
+                // Update the HTML elements with the prediction results and visualizations
                 $('#prediction').html('Prediction is: <span id="text">' + endresult.data + '</span>')
-                $('#probs').prop('src', 'data:image/png;base64,' + endresult.probencoded)
-                $('#interpret').prop('src', 'data:image/png;base64,' + endresult.interpretencoded)
+                $('#probs').prop('src', 'data:image/png;base64,' + endresult.probencoded) // Set source for probability chart
+                $('#interpret').prop('src', 'data:image/png;base64,' + endresult.interpretencoded) // Set source for interpretability image
+                $('#saliency-map').prop('src', 'data:image/png;base64,' + endresult.saliencyencoded) // Set source for saliency map
+
+            },
+            error: function(error) { // Added error handling for AJAX call
+                 console.error("Error during prediction:", error); // Log the error
+                 $('#prediction').html('Prediction Error.'); // Display error message on the page
+                 // Hide visualization elements on error
+                 document.getElementById("probs").style.display = "none";
+                 document.getElementById("interpret").style.display = "none";
+                 document.getElementById("saliency-map").style.display = "none";
             }
         });
     }
@@ -83,12 +120,15 @@
         if (res == 'down') {
             prevX = currX;
             prevY = currY;
+            // Get current mouse position relative to the canvas
             currX = e.clientX - canvas.offsetLeft;
+            // Corrected coordinate calculation: use canvas.offsetTop instead of e.target.offsetTop
             currY = e.clientY - canvas.offsetTop;
 
-            flag = true;
+            flag = true; // Start drawing
             dot_flag = true;
             if (dot_flag) {
+                // Draw a small dot on click
                 ctx.beginPath();
                 ctx.fillStyle = x;
                 ctx.fillRect(currX, currY, 2, 2);
@@ -97,39 +137,64 @@
             }
         }
         if (res == 'up' || res == "out") {
-            flag = false;
+            flag = false; // Stop drawing
         }
         if (res == 'move') {
             if (flag) {
+                // If drawing (flag is true), update positions and draw
                 prevX = currX;
                 prevY = currY;
                 currX = e.clientX - canvas.offsetLeft;
+                // Corrected coordinate calculation: use canvas.offsetTop instead of e.target.offsetTop
                 currY = e.clientY - canvas.offsetTop;
                 draw();
             }
         }
     }
+
+    // Added a function to reset prediction results when drawing starts again
+    function resetPredictionDisplay() {
+         // Hide prediction results and visualizations
+         document.getElementById("prediction").style.display = "none";
+         document.getElementById("probs").style.display = "none";
+         document.getElementById("interpret").style.display = "none";
+         document.getElementById("saliency-map").style.display = "none";
+
+         // Clear the content/source of the prediction elements
+         $('#prediction').empty();
+         $('#probs').removeAttr('src');
+         $('#interpret').removeAttr('src');
+         $('#saliency-map').removeAttr('src');
+    }
+
+    // Modify findxy to call resetPredictionDisplay on mousedown
+     canvas.addEventListener("mousedown", function (e) {
+         findxy('down', e); // Handle drawing
+         resetPredictionDisplay(); // Reset display when user starts drawing
+     }, false);
+
 </script>
 
 <body onload="init()">
     <center>
-        <h1> Handwritten Digit Recognition using <span id="text">PyTorch CNN</span></h1>
+        <h1> Handwritten Digit Recognition using <span id="text">PyTorch CNN</span> done by: AlyElDeen Adham</h1>
     </center>
     <div id="side">
         <h4 id='text'> Draw a Digit in the center of the Box.. </h4>
-        <canvas id="can" width="200px" height="200px"></canvas>
-        <img id="canvasimg">
-        <div style="margin-top: 10;">
+        <canvas id="can" width="200px" height="200px" style="border:1px solid #000;"></canvas> <img id="canvasimg"> <div style="margin-top: 10;">
             <button class="ripple" id="btn" onclick="save()"> predict </button>
             &nbsp;
             <button id="clr" onclick="erase()"> clear </button>
             <h3 id="prediction"></h3>
         </div>
+
+        <p style="margin-top: 20px;"><a href="{{ url_for('view_metrics') }}">View Performance Metrics</a></p>
+        <p style="margin-top: 10px;"><a href="{{ url_for('cnn_mlp_viz') }}">View CNN/MLP Visualizations</a></p>
+
     </div>
     <div>
-        <img id="probs" src="" alt="" height="45%" width="35%">
-        <img id="interpret" src="" alt="" height="45%" width="35%">
-    </div>
+        <img id="probs" src="" alt="Probability Chart" height="300px" width="auto"> <img id="interpret" src="" alt="Interpretability Visualization" height="300px" width="auto"> <img id="saliency-map" src="" alt="Saliency Map" height="300px" width="auto"> </div>
+
 </body>
 
 </html>

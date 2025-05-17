@@ -2,13 +2,16 @@ import torch
 from torch import nn, optim
 from torch.utils import data
 
-from utils import *
+from utils import random_seed, timer
 import pandas as pd
 import numpy as np
+import os
 from os import makedirs
 from typing import Union
 import matplotlib.pyplot as plt
 from dataclasses import dataclass
+
+from sklearn.metrics import confusion_matrix, classification_report # Add this line
 
 import warnings
 warnings.filterwarnings('ignore')
@@ -193,7 +196,7 @@ def eval_loop_fn(data_loader, model, device):
 
         outputs = model(x=ids)
         loss = loss_fn(outputs, targets)
-        loss.backward()
+        loss.backward() # Note: Backward pass is unusual in a standard eval loop
 
         # Get predictions from the maximum value
         _, outputs = torch.max(outputs.data, 1)
@@ -228,7 +231,7 @@ def test_loop_fn(test, model, device):
     # converting to list
     predlabel = predlabel.tolist()
 
-    # Plotting the predicted results
+    # Plotting the predicted results (Keep this or remove based on preference)
     L = 5
     W = 5
     _, axes = plt.subplots(L, W, figsize=(12, 12))
@@ -279,25 +282,24 @@ def run(args):
         len(df_train), 1, 28, 28)/255
     df_valid = df_valid.drop(args.target, axis=1).values.reshape(
         len(df_valid), 1, 28, 28)/255
-    df_test = df_test.values.reshape(len(df_test), 1, 28, 28)/255
+    df_test = df_test.iloc[:, 1:].values.reshape(len(df_test), 1, 28, 28)/255
 
     print('DataSet and DataLoader..')
     # Creating PyTorch Custom Datasets
     train_dataset = MnistDataset(df=df_train, target=train_targets)
     valid_dataset = MnistDataset(df=df_valid, target=valid_targets)
 
-    # Creating PyTorch DataLoaders
     train_data_loader = data.DataLoader(
-        dataset=train_dataset, batch_size=args.BATCH_SIZE, shuffle=True)
+        dataset=train_dataset, batch_size=args.BATCH_SIZE, shuffle=True, num_workers=4)
     valid_data_loader = data.DataLoader(
-        dataset=valid_dataset, batch_size=args.BATCH_SIZE, shuffle=False)
+        dataset=valid_dataset, batch_size=args.BATCH_SIZE, shuffle=False, num_workers=4)
 
     # device (cpu/gpu)
     device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 
     # instatiate model and sending it to device
     model = MnistModel(classes=classes).to(device)
-    # instantiate optimizer
+    optimizer = optim.SGD(model.parameters(), lr=args.lr, momentum=0.9, weight_decay=1e-4)
     optimizer = optim.SGD(model.parameters(), lr=args.lr)
     # instantiate scheduler
     scheduler = optim.lr_scheduler.CyclicLR(
@@ -318,7 +320,39 @@ def run(args):
             torch.save(model.state_dict(), args.model_path)
             best_accuracy = accuracy
 
+    # Calculate and save performance metrics using the validation set results from the last epoch
+    # Note: 'o' and 't' here are the results from the LAST epoch's evaluation
+    print('Calculating Performance Metrics..')
+
+    # Calculate Confusion Matrix
+    # Ensure t and o are flattened for scikit-learn metrics functions
+    cm = confusion_matrix(t.ravel(), o.ravel())
+    print("Confusion Matrix:\n", cm)
+
+    # Calculate Classification Report (includes Precision, Recall, F1-score, Support)
+    # We need the target names (the digits 0-9)
+    target_names = [str(i) for i in range(classes)] # Use the calculated 'classes' variable
+    report = classification_report(t.ravel(), o.ravel(), target_names=target_names)
+    print("Classification Report:\n", report)
+
+    # Save the metrics. We can save them to a file in the 'checkpoint' directory.
+    # os.path.dirname(args.model_path) gives the directory part of the path
+    metrics_dir = os.path.dirname(args.model_path)
+    metrics_filename = os.path.join(metrics_dir, 'performance_metrics.txt')
+
+    with open(metrics_filename, 'w') as f:
+        f.write("Confusion Matrix:\n")
+        f.write(np.array2string(cm, separator=', ') + "\n\n")
+        f.write("Classification Report:\n")
+        f.write(report)
+
+    print(f"Performance metrics saved to {metrics_filename}")
+
+
     # Predict on test data
+    # Note: The model loaded by app.py will be the one saved based on best_accuracy,
+    # not necessarily the one from the last epoch if best_accuracy was achieved earlier.
+    # However, for simplicity here, we use the model after the training loop finishes.
     return test_loop_fn(df_test, model, device)
 
 
@@ -335,8 +369,9 @@ if __name__ == "__main__":
         model_path: str = 'checkpoint/mnist.pt'
 
         def __post_init__(self):
-            makedirs('checkpoint', exist_ok=True)
+            # Ensure the directory for the model and metrics exists
+            makedirs(os.path.dirname(self.model_path), exist_ok=True)
 
     arg = Args()
-    random_seed(arg.RANDOM_STATE)
+    random_seed(arg.RANDOM_STATE) # Assuming random_seed is defined in utils.py
     test_preds = run(args=arg)

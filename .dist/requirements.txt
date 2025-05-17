@@ -1,0 +1,11 @@
+torch
+numpy
+flask
+gunicorn
+matplotlib
+pillow==6.2.0
+flake8
+pip
+pylint
+pandas
+seaborn
