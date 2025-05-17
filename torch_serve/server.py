@@ -12,7 +12,7 @@ class MnistModel(nn.Module):
 
         self.classes = classes
 
-        # initialize the layers in the first (CONV => RELU) * 2 => POOL + DROP
+        # initialize the layerssss in the first (CONV => RELU) * 2 => POOL + DROP
         # (N,1,28,28) -> (N,16,24,24)
         self.conv1A = nn.Conv2d(
             in_channels=1, out_channels=16, kernel_size=5, stride=1, padding=0)

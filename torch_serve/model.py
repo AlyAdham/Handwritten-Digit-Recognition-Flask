@@ -24,7 +24,7 @@ class MnistModel(nn.Module):
         self.act = nn.ReLU()
         self.do = nn.Dropout(0.25)
 
-        # initialize the layers in the second (CONV => RELU) * 2 => POOL + DROP
+        # initialize the layerssss in the second (CONV => RELU) * 2 => POOL + DROP
         # (N,32,10,10) -> (N,64,8,8)
         self.conv2A = nn.Conv2d(
             in_channels=32, out_channels=64, kernel_size=3, stride=1, padding=0)
